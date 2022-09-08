@@ -4,6 +4,8 @@ const Contact = require("../../models/contact");
 
 const { RequestError } = require("../../helpers");
 
+const { authorize } = require("../../middlewares");
+
 const Joi = require("joi");
 
 const addShema = Joi.object({
@@ -19,16 +21,17 @@ const contactFavoriteShema = Joi.object({
 
 const router = express.Router();
 
-router.get("/", async (req, res, next) => {
+router.get("/", authorize, async (req, res, next) => {
   try {
-    const result = await Contact.find();
+    const { _id: owner } = req.body;
+    const result = await Contact.find({ owner }).populate("owner", "email");
     res.json(result);
   } catch (err) {
     next(err);
   }
 });
 
-router.get("/:contactId", async (req, res, next) => {
+router.get("/:contactId", authorize, async (req, res, next) => {
   try {
     const id = req.params.contactId;
     const result = await Contact.findById(id);
@@ -41,20 +44,21 @@ router.get("/:contactId", async (req, res, next) => {
   }
 });
 
-router.post("/", async (req, res, next) => {
+router.post("/", authorize, async (req, res, next) => {
   try {
+    const { _id: owner } = req.user;
     const { error } = addShema.validate(req.body);
     if (error) {
       throw RequestError(400, "Missing required name field");
     }
-    const result = await Contact.create(req.body);
+    const result = await Contact.create({ ...req.body, owner });
     res.status(201).json(result);
   } catch (err) {
     next(err);
   }
 });
 
-router.delete("/:contactId", async (req, res, next) => {
+router.delete("/:contactId", authorize, async (req, res, next) => {
   try {
     const id = req.params.contactId;
     const result = await Contact.findByIdAndDelete(id);
@@ -69,7 +73,7 @@ router.delete("/:contactId", async (req, res, next) => {
   }
 });
 
-router.patch("/:contactId/favorite", async (req, res, next) => {
+router.patch("/:contactId/favorite", authorize, async (req, res, next) => {
   try {
     const { error } = contactFavoriteShema.validate(req.body);
     if (error) {
@@ -88,7 +92,7 @@ router.patch("/:contactId/favorite", async (req, res, next) => {
   }
 });
 
-router.put("/:contactId", async (req, res, next) => {
+router.put("/:contactId", authorize, async (req, res, next) => {
   try {
     const { error } = addShema.validate(req.body);
     if (error) {
