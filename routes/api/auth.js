@@ -127,7 +127,6 @@ router.patch(
       await User.findByIdAndUpdate(req.user._id, { avatarURL });
       res.json({ avatarURL });
     } catch (error) {
-      // await fs.unlink(req.file.path);
       next(error);
     }
   }
